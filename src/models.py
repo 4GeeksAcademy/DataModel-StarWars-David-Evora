@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import String, ForeignKey
+from sqlalchemy import String, ForeignKey, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, UTC
 from typing import List
@@ -12,10 +12,10 @@ class User(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     full_name: Mapped[str] = mapped_column(String(128), unique=False, nullable=False)
     username: Mapped[str] = mapped_column(String(16), unique=True, nullable=False)
-    password: Mapped[str] = mapped_column(String(16), unique=False, nullable=False)
+    password: Mapped[str] = mapped_column(String(255), unique=False, nullable=False)
     email: Mapped[str] = mapped_column(String(128), unique=True, nullable=False)
-    created: Mapped[int] = mapped_column(default=lambda: datetime.now(UTC), nullable=False)
-    favorites: Mapped[List["Favorite"]] = relationship("Favorite", back_populates="user")
+    created: Mapped[datetime] = mapped_column(DateTime,default=lambda: datetime.now(UTC), nullable=False)
+    favorites: Mapped[List["Favorite"]] = relationship("Favorite", back_populates="user", cascade="all, delete-orphan")
 
 class People(db.Model):
     __tablename__ = "people"
@@ -30,9 +30,9 @@ class People(db.Model):
     mass: Mapped[str] = mapped_column(String(16), unique=False, nullable=True)
     skin_color: Mapped[str] = mapped_column(String(16), unique=False, nullable=True)
     homeworld: Mapped[str] = mapped_column(String(128), unique=False, nullable=True)
-    created: Mapped[int] = mapped_column(default=lambda: datetime.now(UTC), nullable=False)
-    edited: Mapped[int] = mapped_column(default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
-    favorites: Mapped[List["Favorite"]] = relationship("Favorite", back_populates="people")
+    created: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    edited: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
+    favorites: Mapped[List["Favorite"]] = relationship("Favorite", back_populates="people", cascade="all, delete-orphan")
 
 class Vehicle(db.Model):
     __tablename__ = "vehicle"
@@ -45,9 +45,9 @@ class Vehicle(db.Model):
     speed: Mapped[str] = mapped_column(String(16), unique=False, nullable=True)
     weight: Mapped[str] = mapped_column(String(16), unique=False, nullable=True)
     length: Mapped[str] = mapped_column(String(16), unique=False, nullable=True)
-    created: Mapped[int] = mapped_column(default=lambda: datetime.now(UTC), nullable=False)
-    edited: Mapped[int] = mapped_column(default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
-    favorites: Mapped[List["Favorite"]] = relationship("Favorite", back_populates="vehicle")
+    created: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    edited: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
+    favorites: Mapped[List["Favorite"]] = relationship("Favorite", back_populates="vehicle", cascade="all, delete-orphan")
 
 class Planet(db.Model):
     __tablename__ = "planet"
@@ -58,15 +58,20 @@ class Planet(db.Model):
     population: Mapped[str] = mapped_column(String(16), unique=False, nullable=True)
     climate: Mapped[str] = mapped_column(String(128), unique=False, nullable=True)
     terrain: Mapped[str] = mapped_column(String(128), unique=False, nullable=True)
-    created: Mapped[int] = mapped_column(default=lambda: datetime.now(UTC), nullable=False)
-    edited: Mapped[int] = mapped_column(default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
-    favorites: Mapped[List["Favorite"]] = relationship("Favorite", back_populates="planet")
+    created: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    edited: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
+    favorites: Mapped[List["Favorite"]] = relationship("Favorite", back_populates="planet", cascade="all, delete-orphan")
 
 class Favorite(db.Model):
-	__tablename__ = "favorite"
+    __tablename__ = "favorite"
+    
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('user.id'), nullable=False)
+    people_id: Mapped[int] = mapped_column(ForeignKey('people.id'), nullable=True)
+    vehicle_id: Mapped[int] = mapped_column(ForeignKey('vehicle.id'), nullable=True)
+    planet_id: Mapped[int] = mapped_column(ForeignKey('planet.id'), nullable=True)
 
-	id: Mapped[int] = mapped_column(primary_key=True)
-	user_id: Mapped[int] = mapped_column(Foreign_Key='user.id', nullable=False)
-	people_id: Mapped[int] = mapped_column(Foreign_Key='people.id', nullable=False)
-	vehicle_id: Mapped[int] = mapped_column(Foreign_Key='vehicle.id', nullable=False)
-	planet_id: Mapped[int] = mapped_column(Foreign_Key='planet.id', nullable=False)
+    user: Mapped["User"] = relationship(back_populates="favorites")
+    people: Mapped["People"] = relationship(back_populates="favorites")
+    vehicle: Mapped["Vehicle"] = relationship(back_populates="favorites")
+    planet: Mapped["Planet"] = relationship(back_populates="favorites")
